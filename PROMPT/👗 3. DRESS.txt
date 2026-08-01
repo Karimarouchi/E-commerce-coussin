@@ -1,0 +1,8 @@
+Clothing to apply:
+- dress: iamge 2 et 3 
+
+Fit rules:
+- follows body shape naturally
+- realistic draping depending on fabric
+- gravity-based folds
+- no clipping with legs

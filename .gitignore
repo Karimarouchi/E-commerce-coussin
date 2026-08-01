@@ -1,0 +1,39 @@
+# ══════════════════════════════════════════════════════════════
+# Root .gitignore — E-commerce GMIR Jewelry
+# ══════════════════════════════════════════════════════════════
+
+# ── IDE ──────────────────────────────────────────────────────
+.idea/
+*.iml
+.vscode/
+*.swp
+*.swo
+*~
+
+# ── OS ───────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ── Environment variables (NEVER commit secrets) ────────────
+.env
+.env.local
+.env.*.local
+
+# ── Dependencies ─────────────────────────────────────────────
+node_modules/
+**/package-lock.json
+
+# ── Build output ─────────────────────────────────────────────
+dist/
+Backend/target/
+
+# ── Logs ─────────────────────────────────────────────────────
+*.log
+logs/
+
+# ── Old folders (to be deleted) ──────────────────────────────
+_old_backoffice/
+_old_frontoffice/
+Back Office/
+Front Office/

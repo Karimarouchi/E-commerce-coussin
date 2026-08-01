@@ -1,0 +1,589 @@
+import { useState, useEffect } from 'react'
+import { useNavigate, useParams } from 'react-router-dom'
+import { toast } from 'react-toastify'
+import CustomSelect from '../components/ui/CustomSelect'
+import PageHeader from '../components/ui/PageHeader'
+import { bannerApi } from '../api/bannerApi'
+
+// ── Helpers ────────────────────────────────────────────────────────────────────
+const Label = ({ children }) => <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">{children}</label>
+const Input = ({ className = '', ...props }) => (
+  <input {...props} className={`w-full rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm focus:ring-2 focus:ring-brand focus:border-brand transition-all placeholder:text-slate-400 outline-none ${className}`} />
+)
+const Toggle = ({ checked, onChange, label, desc }) => (
+  <div className="flex items-center justify-between py-3">
+    <div>
+      <p className="text-sm font-bold text-slate-700">{label}</p>
+      {desc && <p className="text-[11px] text-slate-400">{desc}</p>}
+    </div>
+    <button type="button" onClick={() => onChange(!checked)} className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${checked ? 'bg-brand' : 'bg-slate-200'}`}>
+      <span className={`inline-block h-4 w-4 rounded-full bg-white shadow transition-transform ${checked ? 'translate-x-6' : 'translate-x-1'}`} />
+    </button>
+  </div>
+)
+
+const prioriteOptions = [] // remplacé par options dynamiques dans le composant
+
+const ctaTypeOptions = [
+  { value: 'produit', label: 'Produit' },
+  { value: 'categorie', label: 'Catégorie' },
+  { value: 'lien-externe', label: 'Lien externe' },
+]
+
+const audienceOptions = [
+  { value: 'ALL', label: 'Tous les utilisateurs' },
+  { value: 'VIP', label: 'Clients VIP' },
+  { value: 'NOUVEAU', label: 'Nouveaux clients' },
+  { value: 'FIDELE', label: 'Clients fidèles' },
+  { value: 'INACTIF', label: 'Clients inactifs' },
+]
+
+const statutOptions = [
+  { value: 'ACTIF', label: 'Actif' },
+  { value: 'BROUILLON', label: 'Brouillon' },
+  { value: 'PROGRAMME', label: 'Programmé' },
+  { value: 'EXPIRE', label: 'Expiré' },
+]
+
+const animOptions = [
+  { value: 'fade',      label: 'Fade — fondu doux' },
+  { value: 'slide',     label: 'Slide — glissement' },
+  { value: 'zoom',      label: 'Zoom — zoom arrière' },
+  { value: 'ken-burns', label: 'Ken Burns — zoom lent cinématique' },
+  { value: 'blur',      label: 'Blur — flou → net' },
+]
+
+const alignOptions = [
+  { value: 'left', label: 'Gauche', icon: 'format_align_left' },
+  { value: 'center', label: 'Centre', icon: 'format_align_center' },
+  { value: 'right', label: 'Droite', icon: 'format_align_right' },
+]
+
+// ── Component ──────────────────────────────────────────────────────────────────
+export default function AjouterBanniere() {
+  const navigate = useNavigate()
+  const { id } = useParams()
+  const isEditing = Boolean(id)
+
+  // ─ Content
+  const [desktopImage, setDesktopImage] = useState('')
+  const [desktopImageName, setDesktopImageName] = useState('')
+  const [mobileImage, setMobileImage] = useState('')
+  const [videoUrl, setVideoUrl] = useState('')
+
+  // ─ Texte
+  const [titre, setTitre] = useState('')
+  const [sousTitre, setSousTitre] = useState('')
+  const [alignement, setAlignement] = useState('center')
+
+  // ─ CTA
+  const [ctaTexte, setCtaTexte] = useState('')
+  const [ctaType, setCtaType] = useState('produit')
+  const [ctaLien, setCtaLien] = useState('')
+
+  // ─ Position
+  const [position, setPosition] = useState('HOMEPAGE_HERO')
+  const [priorite, setPriorite] = useState(2)
+
+  // ─ Planning
+  const [dateDebut, setDateDebut] = useState('')
+  const [dateFin, setDateFin] = useState('')
+  const [heureDebut, setHeureDebut] = useState('')
+  const [heureFin, setHeureFin] = useState('')
+
+  // ─ Ciblage
+  const [audience, setAudience] = useState('ALL')
+  const [pays, setPays] = useState('')
+
+  // ─ Animation
+  const [animation, setAnimation] = useState('fade')
+
+  // ─ Switches
+  const [visibleHomepage, setVisibleHomepage] = useState(true)
+  const [visibleMobile, setVisibleMobile] = useState(true)
+  const [visibleDesktop, setVisibleDesktop] = useState(true)
+  const [statut, setStatut] = useState('ACTIF')
+  const [dureeSecondes, setDureeSecondes] = useState(5)
+
+  // ─ A/B Test
+  const [abTestEnabled, setAbTestEnabled] = useState(false)
+  const [abTitreB, setAbTitreB] = useState('')
+  const [abSousTitreB, setAbSousTitreB] = useState('')
+  const [abCtaTexteB, setAbCtaTexteB] = useState('')
+  const [abImageB, setAbImageB] = useState('')
+
+  // ─ Live preview tab
+  const [previewDevice, setPreviewDevice] = useState('desktop')
+
+  // ─ Loading
+  const [saving, setSaving] = useState(false)
+  const [loadingData, setLoadingData] = useState(isEditing)
+
+  // ─ Load existing banner for edit mode + fetch total banner count for dynamic priority
+  const [bannerCount, setBannerCount] = useState(0)
+
+  useEffect(() => {
+    bannerApi.getAll().then((list) => {
+      const count = Array.isArray(list) ? list.length : 0
+      setBannerCount(count)
+      // Default priority for new banner = last position
+      if (!isEditing) setPriorite(count + 1)
+    }).catch(() => {})
+  }, [isEditing])
+
+  // Dynamic priority options: 1..N+1 for new, 1..N for edit
+  const dynamicPrioriteOptions = Array.from(
+    { length: isEditing ? Math.max(bannerCount, 1) : bannerCount + 1 },
+    (_, i) => ({ value: i + 1, label: `${i + 1}${i === 0 ? ' — 1ᵉʳ (en tête)' : i === bannerCount ? ' — Dernier' : ''}` })
+  )
+
+  useEffect(() => {
+    if (!isEditing) return
+    const load = async () => {
+      try {
+        const data = await bannerApi.getById(id)
+        setTitre(data.titre || '')
+        setSousTitre(data.sousTitre || '')
+        setDesktopImage(data.imageUrl || '')
+        setCtaTexte(data.ctaTexte || '')
+        setCtaLien(data.ctaLien || '')
+        setPosition(data.position || 'HOMEPAGE_HERO')
+        setPriorite(data.priorite || 2)
+        setDateDebut(data.dateDebut || '')
+        setDateFin(data.dateFin || '')
+        setAudience(data.audience || 'ALL')
+        setStatut(data.statut || 'BROUILLON')
+        setDureeSecondes(data.dureeSecondes || 5)
+        setAnimation(data.animation || 'fade')
+      } catch {
+        toast.error('Erreur lors du chargement de la bannière')
+        navigate('/bannieres')
+      } finally {
+        setLoadingData(false)
+      }
+    }
+    load()
+  }, [id, isEditing, navigate])
+
+  // ─ Auto-set statut based on dateDebut
+  useEffect(() => {
+    if (!dateDebut) {
+      // No start date → default ACTIF (only if not already forced to BROUILLON/EXPIRE by user)
+      setStatut(prev => (prev === 'PROGRAMME' ? 'ACTIF' : prev))
+      return
+    }
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    const start = new Date(dateDebut)
+    if (start > today) {
+      setStatut('PROGRAMME')
+    } else {
+      setStatut(prev => (prev === 'PROGRAMME' ? 'ACTIF' : prev))
+    }
+  }, [dateDebut])
+
+  // ─ Convert file to base64
+  const fileToBase64 = (file) => new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => resolve(reader.result)
+    reader.onerror = reject
+    reader.readAsDataURL(file)
+  })
+
+  // ─ Submit
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+    if (!titre.trim()) { toast.error('Le titre est obligatoire'); return }
+
+    const payload = {
+      titre: titre.trim(),
+      sousTitre: sousTitre.trim(),
+      imageUrl: desktopImage || null,
+      ctaTexte: ctaTexte.trim(),
+      ctaLien: ctaLien.trim(),
+      position,
+      audience,
+      statut,
+      priorite: Number(priorite),
+      dateDebut: dateDebut || null,
+      dateFin: dateFin || null,
+      actif: statut === 'ACTIF',
+      ordre: 10,
+      dureeSecondes: Number(dureeSecondes),
+      animation,
+    }
+
+    try {
+      setSaving(true)
+      if (isEditing) {
+        await bannerApi.update(id, payload)
+        toast.success('Bannière mise à jour !')
+      } else {
+        await bannerApi.create(payload)
+        toast.success('Bannière créée avec succès !')
+      }
+      navigate('/bannieres')
+    } catch (err) {
+      const msg = err?.response?.data?.message || 'Erreur lors de l\'enregistrement'
+      toast.error(msg)
+    } finally {
+      setSaving(false)
+    }  }
+
+  if (loadingData) {
+    return (
+      <div className="p-6 flex items-center justify-center h-64">
+        <div className="flex flex-col items-center gap-3 text-slate-400">
+          <span className="material-symbols-outlined text-4xl text-slate-200 animate-spin">progress_activity</span>
+          <span className="text-sm">Chargement de la bannière…</span>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="p-6 space-y-6 max-w-[1600px] mx-auto w-full">
+      {/* Header */}
+      <PageHeader
+        title={isEditing ? 'Modifier la bannière' : 'Ajouter une bannière'}
+        subtitle={isEditing ? 'Mettez à jour votre campagne visuelle.' : 'Créez et planifiez une nouvelle campagne visuelle pour votre boutique.'}
+      >
+        <PageHeader.SecondaryBtn icon="arrow_back" onClick={() => navigate('/bannieres')}>Retour</PageHeader.SecondaryBtn>
+        <PageHeader.PrimaryBtn icon="save" type="submit" disabled={saving}>
+          {saving ? 'Enregistrement…' : isEditing ? 'Mettre à jour' : 'Enregistrer'}
+        </PageHeader.PrimaryBtn>
+      </PageHeader>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* ───── LEFT COLUMN (2/3) ───── */}
+        <div className="lg:col-span-2 space-y-6">
+
+          {/* 1. CONTENU — Images */}
+          <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+            <div className="px-6 py-4 border-b border-slate-100 flex items-center gap-2">
+              <span className="material-symbols-outlined text-brand">image</span>
+              <h3 className="text-sm font-bold text-slate-700">Contenu</h3>
+            </div>
+            <div className="p-6 space-y-5">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                {/* Desktop upload */}
+                <div>
+                  <Label>Image Desktop</Label>
+                  {desktopImage ? (
+                    <div className="relative bg-slate-50 rounded-lg border border-slate-200 overflow-hidden">
+                      {desktopImage.startsWith('data:') || desktopImage.startsWith('http') ? (
+                        <img src={desktopImage} alt="preview" className="w-full h-28 object-cover" />
+                      ) : (
+                        <div className="p-4 flex items-center gap-3">
+                          <span className="material-symbols-outlined text-brand">image</span>
+                          <span className="text-sm text-slate-700 truncate flex-1">{desktopImageName || desktopImage}</span>
+                        </div>
+                      )}
+                      <button type="button" onClick={() => { setDesktopImage(''); setDesktopImageName('') }} className="absolute top-2 right-2 bg-white/80 backdrop-blur text-red-400 hover:text-red-500 p-1 rounded-full shadow">
+                        <span className="material-symbols-outlined text-sm">close</span>
+                      </button>
+                    </div>
+                  ) : (
+                    <label className="block border-2 border-dashed border-slate-200 rounded-lg p-8 text-center cursor-pointer hover:border-brand/40 hover:bg-brand/5 transition-colors">
+                      <span className="material-symbols-outlined text-3xl text-slate-300 mb-2 block">cloud_upload</span>
+                      <p className="text-xs font-bold text-slate-500">Glissez ou cliquez</p>
+                      <p className="text-[10px] text-slate-400 mt-1">Recommandé: 1920×600px</p>
+                      <input type="file" className="hidden" accept="image/*" onChange={async (e) => {
+                        const file = e.target.files?.[0]
+                        if (file) {
+                          setDesktopImageName(file.name)
+                          const b64 = await fileToBase64(file)
+                          setDesktopImage(b64)
+                        }
+                      }} />
+                    </label>
+                  )}
+                </div>
+                {/* Mobile upload */}
+                <div>
+                  <Label>Image Mobile</Label>
+                  {mobileImage ? (
+                    <div className="relative bg-slate-50 rounded-lg border border-slate-200 p-4 flex items-center gap-3">
+                      <span className="material-symbols-outlined text-brand">smartphone</span>
+                      <span className="text-sm text-slate-700 truncate flex-1">{mobileImage}</span>
+                      <button type="button" onClick={() => setMobileImage('')} className="text-red-400 hover:text-red-500">
+                        <span className="material-symbols-outlined text-sm">close</span>
+                      </button>
+                    </div>
+                  ) : (
+                    <label className="block border-2 border-dashed border-slate-200 rounded-lg p-8 text-center cursor-pointer hover:border-brand/40 hover:bg-brand/5 transition-colors">
+                      <span className="material-symbols-outlined text-3xl text-slate-300 mb-2 block">smartphone</span>
+                      <p className="text-xs font-bold text-slate-500">Glissez ou cliquez</p>
+                      <p className="text-[10px] text-slate-400 mt-1">Recommandé: 800×800px</p>
+                      <input type="file" className="hidden" accept="image/*" onChange={(e) => { if (e.target.files?.[0]) setMobileImage(e.target.files[0].name) }} />
+                    </label>
+                  )}
+                </div>
+              </div>
+              {/* Video optionnel */}
+              <div>
+                <Label>Vidéo (optionnel)</Label>
+                <Input
+                  value={videoUrl}
+                  onChange={(e) => {
+                    const raw = e.target.value.trim()
+                    // Convertit automatiquement youtube.com/watch?v=ID → youtube.com/embed/ID
+                    const ytMatch = raw.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/)
+                    if (ytMatch) {
+                      setVideoUrl(`https://www.youtube.com/embed/${ytMatch[1]}?autoplay=1&mute=1&loop=1&playlist=${ytMatch[1]}&controls=0`)
+                    } else {
+                      setVideoUrl(raw)
+                    }
+                  }}
+                  placeholder="https://www.youtube.com/watch?v=... (converti automatiquement)"
+                />
+                {videoUrl && (
+                  <div className="mt-3 rounded-lg overflow-hidden border border-slate-200 aspect-video">
+                    <iframe src={videoUrl} className="w-full h-full" allow="autoplay; encrypted-media" allowFullScreen title="Aperçu vidéo" />
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* 2. TEXTE */}
+          <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+            <div className="px-6 py-4 border-b border-slate-100 flex items-center gap-2">
+              <span className="material-symbols-outlined text-brand">edit_note</span>
+              <h3 className="text-sm font-bold text-slate-700">Texte</h3>
+            </div>
+            <div className="p-6 space-y-5">
+              <div>
+                <Label>Titre</Label>
+                <Input value={titre} onChange={(e) => setTitre(e.target.value)} placeholder="Ex: Nouvelle Collection Été" />
+              </div>
+              <div>
+                <Label>Sous-titre</Label>
+                <textarea
+                  value={sousTitre}
+                  onChange={(e) => setSousTitre(e.target.value)}
+                  rows={2}
+                  placeholder="Ex: Découvrez nos équipements haute performance..."
+                  className="w-full rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm focus:ring-2 focus:ring-brand focus:border-brand transition-all placeholder:text-slate-400 outline-none resize-none"
+                />
+              </div>
+              <div>
+                <Label>Alignement du texte</Label>
+                <div className="flex gap-2">
+                  {alignOptions.map((a) => (
+                    <button key={a.value} type="button" onClick={() => setAlignement(a.value)}
+                      className={`px-4 py-2 rounded-lg text-sm font-bold border transition-all flex items-center gap-2 ${alignement === a.value ? 'border-badge bg-badge/10 text-badge' : 'border-slate-200 bg-white text-slate-500 hover:bg-slate-50'}`}
+                    >
+                      <span className="material-symbols-outlined text-[18px]">{a.icon}</span>
+                      {a.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* 3. CTA + Priorité */}
+          <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+            <div className="px-6 py-4 border-b border-slate-100 flex items-center gap-2">
+              <span className="material-symbols-outlined text-brand">ads_click</span>
+              <h3 className="text-sm font-bold text-slate-700">CTA (Call to Action)</h3>
+            </div>
+            <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-5">
+              <div className="space-y-5">
+                <div>
+                  <Label>Texte du bouton</Label>
+                  <Input value={ctaTexte} onChange={(e) => setCtaTexte(e.target.value)} placeholder="Ex: Acheter maintenant" />
+                </div>
+                <div>
+                  <Label>Type</Label>
+                  <CustomSelect value={ctaType} onChange={setCtaType} options={ctaTypeOptions} />
+                </div>
+                <div>
+                  <Label>Lien de redirection</Label>
+                  <Input value={ctaLien} onChange={(e) => setCtaLien(e.target.value)} placeholder="/categorie/vestes ou https://..." />
+                </div>
+              </div>
+              <div>
+                <Label>Priorité d'affichage</Label>
+                <CustomSelect value={priorite} onChange={setPriorite} options={dynamicPrioriteOptions} />
+                <p className="text-[10px] text-slate-400 mt-2">
+                  {bannerCount === 0 ? 'Première bannière — sera affichée en tête' : `${isEditing ? bannerCount : bannerCount + 1} position(s) disponible(s) — 1 = affiché en premier`}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* 4. Planification + Ciblage */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Planification */}
+            <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+              <div className="px-6 py-4 border-b border-slate-100 flex items-center gap-2">
+                <span className="material-symbols-outlined text-brand">calendar_today</span>
+                <h3 className="text-sm font-bold text-slate-700">Planification</h3>
+              </div>
+              <div className="p-6 space-y-5">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label>Date début</Label>
+                    <input type="date" value={dateDebut} onChange={(e) => setDateDebut(e.target.value)} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm focus:ring-2 focus:ring-brand focus:border-brand transition-all outline-none" />
+                  </div>
+                  <div>
+                    <Label>Date fin</Label>
+                    <input type="date" value={dateFin} onChange={(e) => setDateFin(e.target.value)} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm focus:ring-2 focus:ring-brand focus:border-brand transition-all outline-none" />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label>Heure début</Label>
+                    <input type="time" value={heureDebut} onChange={(e) => setHeureDebut(e.target.value)} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm focus:ring-2 focus:ring-brand focus:border-brand transition-all outline-none" />
+                  </div>
+                  <div>
+                    <Label>Heure fin</Label>
+                    <input type="time" value={heureFin} onChange={(e) => setHeureFin(e.target.value)} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm focus:ring-2 focus:ring-brand focus:border-brand transition-all outline-none" />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Ciblage */}
+            <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+              <div className="px-6 py-4 border-b border-slate-100 flex items-center gap-2">
+                <span className="material-symbols-outlined text-brand">group</span>
+                <h3 className="text-sm font-bold text-slate-700">Ciblage</h3>
+              </div>
+              <div className="p-6 space-y-5">
+                <div>
+                  <Label>Audience</Label>
+                  <CustomSelect value={audience} onChange={setAudience} options={audienceOptions} />
+                </div>
+                <div>
+                  <Label>Pays (optionnel)</Label>
+                  <Input value={pays} onChange={(e) => setPays(e.target.value)} placeholder="Ex: Tunisie, France..." />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* 5. Animation */}
+          <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+            <div className="px-6 py-4 border-b border-slate-100 flex items-center gap-2">
+              <span className="material-symbols-outlined text-brand">animation</span>
+              <h3 className="text-sm font-bold text-slate-700">Animation</h3>
+            </div>
+            <div className="p-6">
+              <Label>Type d'animation</Label>
+              <CustomSelect value={animation} onChange={setAnimation} options={animOptions} />
+              {/* Preview animation */}
+              <div className="mt-4 bg-slate-50 rounded-lg p-4 border border-slate-200 text-center">
+                <span className="material-symbols-outlined text-brand/40 text-3xl">{animation === 'fade' ? 'blur_on' : animation === 'slide' ? 'swipe_right' : 'zoom_in'}</span>
+                <p className="text-[10px] text-slate-400 font-bold mt-1 uppercase">{animation}</p>
+              </div>
+            </div>
+          </div>
+
+          {/* 6. Paramètres */}
+          <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+            <div className="px-6 py-4 border-b border-slate-100 flex items-center gap-2">
+              <span className="material-symbols-outlined text-brand">toggle_on</span>
+              <h3 className="text-sm font-bold text-slate-700">Paramètres</h3>
+            </div>
+            <div className="px-6 py-4 space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Statut</label>
+                <CustomSelect value={statut} onChange={setStatut} options={statutOptions} />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Durée d'affichage (slideshow)</label>
+                <div className="flex items-center gap-3">
+                  <input
+                    type="number" min={1} max={60}
+                    value={dureeSecondes}
+                    onChange={(e) => setDureeSecondes(Math.max(1, Number(e.target.value)))}
+                    className="w-20 rounded-lg border border-slate-200 px-3 py-2 text-sm focus:ring-2 focus:ring-brand outline-none text-center font-bold"
+                  />
+                  <span className="text-sm text-slate-500">secondes avant la bannière suivante</span>
+                </div>
+              </div>
+              <div className="divide-y divide-slate-100">
+                <Toggle checked={visibleHomepage} onChange={setVisibleHomepage} label="Visible sur Homepage" desc="Afficher sur la page d'accueil" />
+                <Toggle checked={visibleDesktop} onChange={setVisibleDesktop} label="Visible Desktop" desc="Afficher sur écrans larges" />
+                <Toggle checked={visibleMobile} onChange={setVisibleMobile} label="Visible Mobile" desc="Afficher sur appareils mobiles" />
+              </div>
+            </div>
+          </div>
+
+          {/* 6b. Résumé */}
+          <div className="bg-slate-50 rounded-xl border border-slate-200 p-5 space-y-3">
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Résumé</p>
+            <div className="space-y-2">
+              {[
+                { label: 'Priorité', val: `Position ${priorite}` },
+                { label: 'Audience', val: audienceOptions.find((o) => o.value === audience)?.label },
+                { label: 'Statut', val: statutOptions.find((o) => o.value === statut)?.label },
+                { label: 'A/B Test', val: abTestEnabled ? 'Activé' : 'Désactivé' },
+              ].map((r) => (
+                <div key={r.label} className="flex items-center justify-between">
+                  <span className="text-xs text-slate-500">{r.label}</span>
+                  <span className="text-xs font-bold text-slate-700">{r.val}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+        </div>
+
+        {/* ───── RIGHT COLUMN (1/3) ───── */}
+        <div className="space-y-6 lg:sticky lg:top-6 lg:self-start">
+
+          {/* Live Preview — seul dans la colonne droite */}
+          <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="material-symbols-outlined text-brand">preview</span>
+                <h3 className="text-sm font-bold text-slate-700">Prévisualisation</h3>
+              </div>
+              <div className="flex bg-slate-100 rounded-lg p-0.5">
+                <button type="button" onClick={() => setPreviewDevice('desktop')} className={`px-3 py-1 rounded-md text-[11px] font-bold transition-all ${previewDevice === 'desktop' ? 'bg-white text-brand shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}>
+                  <span className="material-symbols-outlined text-[14px] mr-1 align-middle">desktop_windows</span>Desktop
+                </button>
+                <button type="button" onClick={() => setPreviewDevice('mobile')} className={`px-3 py-1 rounded-md text-[11px] font-bold transition-all ${previewDevice === 'mobile' ? 'bg-white text-brand shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}>
+                  <span className="material-symbols-outlined text-[14px] mr-1 align-middle">smartphone</span>Mobile
+                </button>
+              </div>
+            </div>
+            <div className="p-4">
+              <div className={`mx-auto border-2 border-slate-100 rounded-lg overflow-hidden transition-all ${previewDevice === 'desktop' ? 'w-full aspect-[16/5]' : 'w-44 aspect-[9/16] mx-auto'}`}>
+                <div className="w-full h-full bg-gradient-to-br from-brand/10 to-brand/5 flex flex-col items-center justify-center p-4 text-center relative">
+                  {desktopImage && (desktopImage.startsWith('data:') || desktopImage.startsWith('http')) && (
+                    <img src={desktopImage} alt="preview" className="absolute inset-0 w-full h-full object-cover" />
+                  )}
+                  <div className="relative z-10 flex flex-col items-center text-center">
+                    <p className={`font-bold text-white drop-shadow-lg ${previewDevice === 'mobile' ? 'text-xs' : 'text-sm'} ${alignement === 'left' ? 'self-start text-left' : alignement === 'right' ? 'self-end text-right' : ''}`}>
+                      {titre || 'Titre de la bannière'}
+                    </p>
+                    <p className={`text-white/80 drop-shadow mt-0.5 ${previewDevice === 'mobile' ? 'text-[9px]' : 'text-[11px]'} ${alignement === 'left' ? 'self-start text-left' : alignement === 'right' ? 'self-end text-right' : ''}`}>
+                      {sousTitre || 'Sous-titre de la bannière'}
+                    </p>
+                    <button type="button" className={`mt-2 bg-white text-slate-900 font-bold rounded shadow-sm ${previewDevice === 'mobile' ? 'text-[8px] px-2 py-1' : 'text-[10px] px-3 py-1.5'}`}>
+                      {ctaTexte || 'Bouton CTA'}
+                    </button>
+                  </div>
+                </div>
+              </div>
+              {/* Preview info */}
+              <div className="mt-3 flex items-center justify-between text-[10px] text-slate-400">
+                <span>{previewDevice === 'desktop' ? '1920×600px' : '800×800px'}</span>
+                <span className="flex items-center gap-1">
+                  <span className="material-symbols-outlined text-[12px]">animation</span>
+                  {animation}
+                </span>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </form>
+  )
+}

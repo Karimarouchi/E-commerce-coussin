@@ -1,0 +1,47 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: postgres_db
+    environment:
+      POSTGRES_DB: ecommerce
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+
+    build: ./Backend
+    container_name: backend_app
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: ecommerce
+      DB_USERNAME: postgres
+      DB_PASSWORD: postgres
+      JWT_SECRET: ecommerce_jwt_secret_key_change_in_production_min_32chars
+      CORS_ALLOWED_ORIGINS: http://localhost:3001,http://localhost:3000
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  backoffice:
+    build: ./Frontend/backoffice
+    container_name: backoffice_app
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+
+  frontoffice:
+    build: ./Frontend/frontoffice
+    container_name: frontoffice_app
+    ports:
+      - "3001:80"
+    depends_on:
+      - backend

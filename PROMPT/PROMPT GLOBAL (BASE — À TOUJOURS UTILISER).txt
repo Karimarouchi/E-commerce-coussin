@@ -1,0 +1,58 @@
+Create a highly realistic fashion studio image using the provided reference images.
+
+STRICT RULE:
+The FIRST image is the base model. 
+You MUST keep EXACTLY:
+- same face
+- same body shape
+- same proportions
+- same pose
+- same skin tone
+- same lighting
+- same background
+
+DO NOT change anything from the model image.
+
+The other images are clothing references ONLY.
+
+The model must wear the selected clothing with perfect realism.
+
+Rendering requirements:
+- natural fabric behavior (folds, stretch, gravity)
+- realistic stitching and textures
+- correct fit based on body shape
+- proper shadows and lighting interaction
+
+Composition:
+- full body visible (head to toe)
+- centered model
+- vertical format (4:5)
+- camera straight, eye-level
+- keep small margin around body (not cropped)
+
+IMPORTANT SPACING RULE:
+- Leave a small visible gap between pants/jeans and shoes
+- Do NOT merge shoes with pants
+- Shoes must be clearly visible and separated
+
+Lighting:
+- soft studio lighting
+- clean soft shadows
+- neutral tones
+
+Background:
+- MUST stay identical to the original model image
+
+Style:
+ultra realistic, fashion photography, studio shoot, 4K, high detail, sharp focus, natural colors
+
+STRICT PROHIBITIONS:
+- do not change face
+- do not change pose
+- do not change background
+- do not change skin tone
+- do not invent clothing
+- do not add accessories
+- do not stylize
+
+Output must look like a real e-commerce product photo.

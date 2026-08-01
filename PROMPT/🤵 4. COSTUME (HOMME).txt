@@ -1,0 +1,10 @@
+Outfit:
+- Suit: [describe suit]
+- Inner: shirt or t-shirt
+- Shoes: formal shoes
+
+Ensure:
+- structured tailoring (shoulders, chest, sleeves)
+- clean lines
+- realistic fabric tension
+- proper fall of trousers with slight space above shoes

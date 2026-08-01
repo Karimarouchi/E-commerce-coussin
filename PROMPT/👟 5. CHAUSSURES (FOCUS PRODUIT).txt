@@ -1,0 +1,11 @@
+Clothing to apply:
+- shoes: image 2 et 3 
+
+Rules:
+- perfectly aligned with feet
+- realistic contact with ground
+- natural shadows under shoes
+- fully visible (not hidden by pants)
+
+Spacing rule:
+- slight gap between pants and shoes
