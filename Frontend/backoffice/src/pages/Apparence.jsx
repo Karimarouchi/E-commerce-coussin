@@ -610,9 +610,9 @@ export default function Apparence() {
               <SectionCard icon="image" title="Logos &amp; Iconographie">
                 <div className={`grid grid-cols-1 gap-4 ${activeScope === 'frontoffice' ? 'md:grid-cols-3' : 'md:grid-cols-2'}`}>
                   {(activeScope === 'frontoffice' ? [
-                    { field: 'logoMain',  icon: 'cloud_upload',    label: 'Logo Principal',    sub: 'SVG, PNG — version par défaut' },
-                    { field: 'logoNavbar', icon: 'view_compact',   label: 'Logo Navbar',        sub: 'Affiché dans la barre de navigation (remplace le principal)' },
-                    { field: 'logoLight', icon: 'brightness_high', label: 'Logo Transparent',   sub: 'Affiché quand le header est sur fond sombre (hero)' },
+                    { field: 'logoMain',  icon: 'cloud_upload',    label: 'Logo Principal',    sub: 'Login, écran de chargement — indépendant de la navbar' },
+                    { field: 'logoNavbar', icon: 'view_compact',   label: 'Logo Navbar',        sub: 'Uniquement la barre de navigation du site' },
+                    { field: 'logoLight', icon: 'brightness_high', label: 'Logo Transparent',   sub: 'Header sur fond sombre (hero) uniquement' },
                   ] : [
                     { field: 'logoMain',  icon: 'cloud_upload',    label: 'Logo Principal',     sub: 'SVG, PNG (max 2MB)' },
                     { field: 'logoLight', icon: 'brightness_high', label: 'Logo Mode Sombre',   sub: 'Version claire pour fond sombre' },
@@ -867,9 +867,9 @@ export default function Apparence() {
                             </div>
                             {/* Center — Logo */}
                             <div className="flex flex-col items-center gap-0.5 flex-1 justify-center">
-                              {(current.logoNavbar || current.logoMain) ? (
+                              {current.logoNavbar ? (
                                 <img
-                                  src={current.logoNavbar || current.logoMain}
+                                  src={current.logoNavbar}
                                   alt={current.brandName || 'Logo'}
                                   className="h-8 w-auto object-contain"
                                 />

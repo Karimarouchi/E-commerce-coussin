@@ -25,7 +25,7 @@ const FEATURE_CARDS = [
 export default function Header() {
   const navigate = useNavigate()
   const { itemCount } = useCart()
-  const { brandName, logoMain, logoNavbar, instagram, facebook } = useFoAppearance()
+  const { brandName, logoNavbar, instagram, facebook } = useFoAppearance()
 
   const [showMenu, setShowMenu] = useState(false)
   const [showNav, setShowNav] = useState(false)
@@ -178,9 +178,9 @@ export default function Header() {
               onClick={closeNav}
               className="font-display text-2xl md:text-[32px] font-bold tracking-tight text-primary transition-opacity hover:opacity-80"
             >
-              {logoNavbar || logoMain ? (
+              {logoNavbar ? (
                 <img
-                  src={logoNavbar || logoMain}
+                  src={logoNavbar}
                   alt={brand}
                   className="h-8 w-auto object-contain"
                 />

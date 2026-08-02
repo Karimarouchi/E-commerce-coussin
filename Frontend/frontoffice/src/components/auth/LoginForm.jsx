@@ -2,10 +2,13 @@ import { useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import apiClient, { scheduleAutoLogout } from '../../api/apiClient'
 import { BACKOFFICE_URL } from '../../config'
+import { useFoAppearance } from '../../context/AppearanceContext'
 
 export default function LoginForm({ onSwitch }) {
   const navigate = useNavigate()
   const [params] = useSearchParams()
+  // Logo Principal uniquement — indépendant du Logo Navbar
+  const { logoMain, brandName } = useFoAppearance()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [remember, setRemember] = useState(false)
@@ -47,9 +50,20 @@ export default function LoginForm({ onSwitch }) {
       <div className="text-center mb-8">
         <Link
           to="/"
-          className="inline-block font-headline text-headline-sm text-primary mb-2 transition-transform hover:scale-105 duration-300"
+          className="inline-block mb-2 transition-transform hover:scale-105 duration-300"
+          aria-label="Accueil"
         >
-          Coussin &amp; Co
+          {logoMain ? (
+            <img
+              src={logoMain}
+              alt={brandName || 'Coussin & Co'}
+              className="mx-auto h-12 w-auto max-w-[220px] object-contain"
+            />
+          ) : (
+            <span className="font-headline text-headline-sm text-primary">
+              Coussin &amp; Co
+            </span>
+          )}
         </Link>
       </div>
 
