@@ -1,13 +1,13 @@
 import axios from 'axios'
+import { API_BASE_URL, loginUrl } from '../config'
 
 const apiClient = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL,
+  baseURL: API_BASE_URL,
   headers: {
     'Content-Type': 'application/json',
   },
 })
 
-// ── Auto-logout on JWT expiry ──────────────────────────────
 function getTokenExpiry(token) {
   try {
     const payload = JSON.parse(atob(token.split('.')[1]))
@@ -20,37 +20,42 @@ function getTokenExpiry(token) {
 let logoutTimer = null
 
 function performLogout() {
-  if (logoutTimer) { clearTimeout(logoutTimer); logoutTimer = null }
+  if (logoutTimer) {
+    clearTimeout(logoutTimer)
+    logoutTimer = null
+  }
   localStorage.removeItem('accessToken')
   localStorage.removeItem('refreshToken')
   localStorage.removeItem('user')
-  window.location.href = 'http://localhost:3001/login?redirect=backoffice'
+  window.location.href = loginUrl('backoffice')
 }
 
 export function scheduleAutoLogout() {
-  if (logoutTimer) { clearTimeout(logoutTimer); logoutTimer = null }
+  if (logoutTimer) {
+    clearTimeout(logoutTimer)
+    logoutTimer = null
+  }
   const token = localStorage.getItem('accessToken')
   if (!token) return
   const expiry = getTokenExpiry(token)
   if (!expiry) return
   const delay = expiry - Date.now()
-  if (delay <= 0) { performLogout(); return }
+  if (delay <= 0) {
+    performLogout()
+    return
+  }
   logoutTimer = setTimeout(performLogout, delay)
 }
 
-// Schedule on app load
 scheduleAutoLogout()
 
-// Sync across browser tabs
 window.addEventListener('storage', (e) => {
   if (e.key === 'accessToken') {
     if (!e.newValue) performLogout()
     else scheduleAutoLogout()
   }
 })
-// ────────────────────────────────────────────────────────────
 
-// Intercepteur pour ajouter le token JWT automatiquement
 apiClient.interceptors.request.use((config) => {
   const token = localStorage.getItem('accessToken')
   if (token) {
@@ -59,12 +64,11 @@ apiClient.interceptors.request.use((config) => {
   return config
 })
 
-// Refresh token queue to avoid race conditions with parallel requests
 let isRefreshing = false
 let refreshSubscribers = []
 
 function onRefreshed(newToken) {
-  refreshSubscribers.forEach(cb => cb(newToken))
+  refreshSubscribers.forEach((cb) => cb(newToken))
   refreshSubscribers = []
 }
 
@@ -72,7 +76,6 @@ function addRefreshSubscriber(cb) {
   refreshSubscribers.push(cb)
 }
 
-// Intercepteur pour gérer les erreurs globales + refresh token
 apiClient.interceptors.response.use(
   (response) => response,
   async (error) => {
@@ -81,7 +84,6 @@ apiClient.interceptors.response.use(
       original._retry = true
 
       if (isRefreshing) {
-        // Another request is already refreshing — wait for it
         return new Promise((resolve) => {
           addRefreshSubscriber((newToken) => {
             original.headers.Authorization = `Bearer ${newToken}`
@@ -95,9 +97,9 @@ apiClient.interceptors.response.use(
       if (refreshToken) {
         try {
           const { data } = await axios.post(
-            'http://localhost:8080/api/v1/auth/refresh',
+            `${API_BASE_URL}/auth/refresh`,
             { refreshToken },
-            { headers: { 'Content-Type': 'application/json' } }
+            { headers: { 'Content-Type': 'application/json' } },
           )
           localStorage.setItem('accessToken', data.accessToken)
           localStorage.setItem('refreshToken', data.refreshToken)
@@ -113,6 +115,7 @@ apiClient.interceptors.response.use(
         }
       } else {
         isRefreshing = false
+        performLogout()
       }
     }
     return Promise.reject(error)

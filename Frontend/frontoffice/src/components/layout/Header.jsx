@@ -1,4 +1,5 @@
 import { Link, useNavigate } from 'react-router-dom'
+import { BACKOFFICE_URL } from '../../config'
 import { useState, useRef, useEffect } from 'react'
 import axios from 'axios'
 import { useFoAppearance } from '../../context/AppearanceContext'
@@ -238,9 +239,9 @@ export default function Header() {
                           const r = localStorage.getItem('refreshToken')
                           const u = localStorage.getItem('user')
                           if (t && r) {
-                            window.location.href = `http://localhost:3000/auth-callback?accessToken=${encodeURIComponent(t)}&refreshToken=${encodeURIComponent(r)}&user=${encodeURIComponent(u || '')}`
+                            window.location.href = `${BACKOFFICE_URL}/auth-callback?accessToken=${encodeURIComponent(t)}&refreshToken=${encodeURIComponent(r)}&user=${encodeURIComponent(u || '')}`
                           } else {
-                            window.location.href = 'http://localhost:3000'
+                            window.location.href = BACKOFFICE_URL
                           }
                         }}
                         className="block w-full text-left px-5 py-3 font-label text-label-md text-on-surface-variant hover:text-primary"

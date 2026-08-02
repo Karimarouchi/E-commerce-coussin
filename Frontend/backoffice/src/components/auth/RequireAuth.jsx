@@ -1,9 +1,10 @@
 import { Outlet } from 'react-router-dom'
+import { FRONTOFFICE_URL, loginUrl } from '../../config'
 
 export default function RequireAuth() {
   const token = localStorage.getItem('accessToken')
   if (!token) {
-    window.location.href = 'http://localhost:3001/login?redirect=backoffice'
+    window.location.href = loginUrl('backoffice')
     return null
   }
   try {
@@ -12,9 +13,11 @@ export default function RequireAuth() {
       localStorage.removeItem('accessToken')
       localStorage.removeItem('refreshToken')
       localStorage.removeItem('user')
-      window.location.href = 'http://localhost:3001'
+      window.location.href = FRONTOFFICE_URL
       return null
     }
-  } catch { /* ignore parse error */ }
+  } catch {
+    /* ignore parse error */
+  }
   return <Outlet />
 }

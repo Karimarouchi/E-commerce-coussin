@@ -1,5 +1,6 @@
 import { NavLink, useNavigate } from 'react-router-dom'
 import { useState, useEffect, useCallback } from 'react'
+import { FRONTOFFICE_URL, loginUrl } from '../../config'
 
 const navItems = [
   { path: '/dashboard',      label: 'Tableau de bord',  icon: 'dashboard',        moduleKey: 'TABLEAU_DE_BORD' },
@@ -79,7 +80,7 @@ function Sidebar() {
     localStorage.removeItem('accessToken')
     localStorage.removeItem('refreshToken')
     localStorage.removeItem('user')
-    window.location.href = 'http://localhost:3001/login'
+    window.location.href = loginUrl()
   }
 
   return (
@@ -165,7 +166,7 @@ function Sidebar() {
       {/* Voir site + Logout */}
       <div className="p-4 mt-auto border-t border-slate-100 space-y-1">
         <a
-          href="http://localhost:3001"
+          href={FRONTOFFICE_URL}
           className="w-full flex items-center gap-3 px-4 py-2 text-slate-600 hover:bg-slate-50 hover:text-sidebar rounded-lg transition-all"
         >
           {showIcons && <span className="material-symbols-outlined text-[20px]">language</span>}

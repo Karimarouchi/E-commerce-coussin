@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { scheduleAutoLogout } from '../api/apiClient'
+import { loginUrl } from '../config'
 
 export default function AuthCallback() {
   const navigate = useNavigate()
@@ -18,7 +19,7 @@ export default function AuthCallback() {
       scheduleAutoLogout()
       navigate('/dashboard', { replace: true })
     } else {
-      window.location.href = 'http://localhost:3001/login?redirect=backoffice'
+      window.location.href = loginUrl('backoffice')
     }
   }, [params, navigate])
 

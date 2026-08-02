@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import apiClient, { scheduleAutoLogout } from '../../api/apiClient'
+import { BACKOFFICE_URL } from '../../config'
 
 export default function LoginForm({ onSwitch }) {
   const navigate = useNavigate()
@@ -28,7 +29,7 @@ export default function LoginForm({ onSwitch }) {
 
       const redirect = params.get('redirect')
       if (redirect === 'backoffice' && data.user.roleName !== 'CLIENT') {
-        const callbackUrl = `http://localhost:3000/auth-callback?accessToken=${encodeURIComponent(data.accessToken)}&refreshToken=${encodeURIComponent(data.refreshToken)}&user=${encodeURIComponent(JSON.stringify(data.user))}`
+        const callbackUrl = `${BACKOFFICE_URL}/auth-callback?accessToken=${encodeURIComponent(data.accessToken)}&refreshToken=${encodeURIComponent(data.refreshToken)}&user=${encodeURIComponent(JSON.stringify(data.user))}`
         window.location.href = callbackUrl
       } else {
         navigate('/')
