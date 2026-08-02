@@ -8,6 +8,7 @@ const DEFAULTS = {
   logoMain: '',
   logoLight: '',
   logoNavbar: '',
+  favicon: '',
   instagram: '',
   facebook: '',
   linkedin: '',
@@ -18,12 +19,32 @@ const DEFAULTS = {
 
 const AppearanceContext = createContext({ ...DEFAULTS, loaded: false })
 
-function applyFoAppearance(data) {
-  // Favicon
-  if (data.favicon) {
-    const existing = document.querySelector("link[rel='icon']")
-    if (existing) existing.href = data.favicon
+function applyFavicon(href) {
+  if (!href) return
+  let link = document.querySelector("link[rel='icon']")
+  if (!link) {
+    link = document.createElement('link')
+    link.rel = 'icon'
+    document.head.appendChild(link)
   }
+  link.type = href.startsWith('data:image/png')
+    ? 'image/png'
+    : href.startsWith('data:image/svg')
+      ? 'image/svg+xml'
+      : 'image/x-icon'
+  link.href = href
+
+  let apple = document.querySelector("link[rel='apple-touch-icon']")
+  if (!apple) {
+    apple = document.createElement('link')
+    apple.rel = 'apple-touch-icon'
+    document.head.appendChild(apple)
+  }
+  apple.href = href
+}
+
+function applyFoAppearance(data) {
+  applyFavicon(data.favicon)
 
   // Page title from brand name
   if (data.brandName) {

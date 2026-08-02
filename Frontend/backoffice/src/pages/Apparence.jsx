@@ -95,7 +95,7 @@ function ColorPicker({ label, sub, value, onChange }) {
   )
 }
 
-function LogoUpload({ icon, label, sub, value, onChange }) {
+function LogoUpload({ icon, label, sub, value, onChange, recommended = '200 × 40 px', previewSquare = false }) {
   const [dragging, setDragging] = useState(false)
 
   const processFile = (file) => {
@@ -138,14 +138,22 @@ function LogoUpload({ icon, label, sub, value, onChange }) {
       {value ? (
         <>
           <div className="w-full flex items-center justify-center bg-slate-50 rounded-lg p-3 mb-3" style={{ minHeight: '60px' }}>
-            <img src={value} alt={label} className="h-[36px] w-auto max-w-full object-contain" />
+            <img
+              src={value}
+              alt={label}
+              className={
+                previewSquare
+                  ? 'h-10 w-10 object-contain rounded'
+                  : 'h-[36px] w-auto max-w-full object-contain'
+              }
+            />
           </div>
           <p className="text-[10px] font-bold uppercase text-slate-500 mb-1">{label}</p>
-          <p className="text-[9px] text-slate-400 mb-3">Dimensions recommandées : <strong>200 × 40 px</strong></p>
+          <p className="text-[9px] text-slate-400 mb-3">Dimensions recommandées : <strong>{recommended}</strong></p>
           <div className="flex gap-2">
             <label className="px-3 py-1.5 text-[10px] font-bold text-white bg-btn rounded-lg cursor-pointer hover:bg-btn-dark transition-colors">
               Changer
-              <input type="file" accept="image/*" onChange={handleFile} className="hidden" />
+              <input type="file" accept="image/png,image/jpeg,image/webp,image/x-icon,image/vnd.microsoft.icon,.ico" onChange={handleFile} className="hidden" />
             </label>
             <button
               type="button"
@@ -169,11 +177,11 @@ function LogoUpload({ icon, label, sub, value, onChange }) {
           </div>
           <p className="text-[10px] font-bold uppercase text-slate-500">{label}</p>
           <p className="text-[9px] text-slate-400 mt-1">{sub}</p>
-          <p className="text-[9px] text-slate-400 mt-0.5">Recommandé : <strong>200 × 40 px</strong></p>
+          <p className="text-[9px] text-slate-400 mt-0.5">Recommandé : <strong>{recommended}</strong></p>
           <p className="text-[9px] text-brand font-semibold mt-2">
             {dragging ? 'Déposez ici !' : 'Glissez-déposez ou cliquez'}
           </p>
-          <input type="file" accept="image/*" onChange={handleFile} className="hidden" />
+          <input type="file" accept="image/png,image/jpeg,image/webp,image/x-icon,image/vnd.microsoft.icon,.ico" onChange={handleFile} className="hidden" />
         </label>
       )}
     </div>
@@ -294,6 +302,15 @@ export default function Apparence() {
         applyLogos(d)
         applyLogoScale(d.logoScale)
         applyLogoAlign(d.logoAlign)
+        if (d.favicon) {
+          let link = document.querySelector("link[rel='icon']")
+          if (!link) {
+            link = document.createElement('link')
+            link.rel = 'icon'
+            document.head.appendChild(link)
+          }
+          link.href = d.favicon
+        }
       }
       toast.success(`Apparence ${activeScope === 'backoffice' ? 'Back Office' : 'Front Office'} enregistrée`)
     } catch {
@@ -608,20 +625,24 @@ export default function Apparence() {
               </SectionCard>              )}
               {/* ── Logos ──────────────────────────── */}
               <SectionCard icon="image" title="Logos &amp; Iconographie">
-                <div className={`grid grid-cols-1 gap-4 ${activeScope === 'frontoffice' ? 'md:grid-cols-3' : 'md:grid-cols-2'}`}>
+                <div className={`grid grid-cols-1 gap-4 ${activeScope === 'frontoffice' ? 'md:grid-cols-2 xl:grid-cols-4' : 'md:grid-cols-3'}`}>
                   {(activeScope === 'frontoffice' ? [
-                    { field: 'logoMain',  icon: 'cloud_upload',    label: 'Logo Principal',    sub: 'Login, écran de chargement — indépendant de la navbar' },
-                    { field: 'logoNavbar', icon: 'view_compact',   label: 'Logo Navbar',        sub: 'Uniquement la barre de navigation du site' },
-                    { field: 'logoLight', icon: 'brightness_high', label: 'Logo Transparent',   sub: 'Header sur fond sombre (hero) uniquement' },
+                    { field: 'logoMain',  icon: 'cloud_upload',    label: 'Logo Principal',    sub: 'Login, écran de chargement — indépendant de la navbar', recommended: '200 × 40 px' },
+                    { field: 'logoNavbar', icon: 'view_compact',   label: 'Logo Navbar',        sub: 'Uniquement la barre de navigation du site', recommended: '200 × 40 px' },
+                    { field: 'logoLight', icon: 'brightness_high', label: 'Logo Transparent',   sub: 'Header sur fond sombre (hero) uniquement', recommended: '200 × 40 px' },
+                    { field: 'favicon',   icon: 'tab',             label: 'Favicon',            sub: 'Icône de l’onglet du navigateur (site)', recommended: '32 × 32 ou 64 × 64 px', previewSquare: true },
                   ] : [
-                    { field: 'logoMain',  icon: 'cloud_upload',    label: 'Logo Principal',     sub: 'SVG, PNG (max 2MB)' },
-                    { field: 'logoLight', icon: 'brightness_high', label: 'Logo Mode Sombre',   sub: 'Version claire pour fond sombre' },
+                    { field: 'logoMain',  icon: 'cloud_upload',    label: 'Logo Principal',     sub: 'SVG, PNG (max 2MB)', recommended: '200 × 40 px' },
+                    { field: 'logoLight', icon: 'brightness_high', label: 'Logo Mode Sombre',   sub: 'Version claire pour fond sombre', recommended: '200 × 40 px' },
+                    { field: 'favicon',   icon: 'tab',             label: 'Favicon',            sub: 'Icône de l’onglet du navigateur (admin)', recommended: '32 × 32 ou 64 × 64 px', previewSquare: true },
                   ]).map((item) => (
                     <LogoUpload
                       key={item.field}
                       icon={item.icon}
                       label={item.label}
                       sub={item.sub}
+                      recommended={item.recommended}
+                      previewSquare={item.previewSquare}
                       value={current[item.field]}
                       onChange={(base64) => setCurrent(prev => ({ ...prev, [item.field]: base64 }))}
                     />

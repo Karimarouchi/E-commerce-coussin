@@ -52,6 +52,15 @@ function App() {
           applyDarkMode(data.darkMode)
           applyLogoScale(data.logoScale)
           applyLogoAlign(data.logoAlign)
+          if (data.favicon) {
+            let link = document.querySelector("link[rel='icon']")
+            if (!link) {
+              link = document.createElement('link')
+              link.rel = 'icon'
+              document.head.appendChild(link)
+            }
+            link.href = data.favicon
+          }
         }
       })
       .catch(() => {})
