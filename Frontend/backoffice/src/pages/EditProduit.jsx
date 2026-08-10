@@ -13,6 +13,7 @@ import {
   getMixMatchRoleLabel,
   getMixMatchSuggestions,
 } from '../utils/mixMatch'
+import { uploadFileFromPc } from '../utils/uploadFile'
 // ── Palette de couleurs françaises (79 couleurs) ─────────────────────────────
 const COLOR_MAP = {
   'jaune':            '#FFCE3B',
@@ -909,18 +910,17 @@ function EditProduit() {
                                 type="file"
                                 accept="image/*"
                                 className="hidden"
-                                onChange={(e) => {
+                                onChange={async (e) => {
                                   const file = e.target.files[0]
+                                  e.target.value = ''
                                   if (!file) return
-                                  const reader = new FileReader()
-                                  reader.onload = (ev) => {
-                                    setColorImages(prev => {
-                                      const arr = [...(prev[tabKey] || [null, null, null])]
-                                      arr[idx] = ev.target.result
-                                      return { ...prev, [tabKey]: arr }
-                                    })
-                                  }
-                                  reader.readAsDataURL(file)
+                                  const url = await uploadFileFromPc(file, 'products')
+                                  if (!url) return
+                                  setColorImages((prev) => {
+                                    const arr = [...(prev[tabKey] || [null, null, null])]
+                                    arr[idx] = url
+                                    return { ...prev, [tabKey]: arr }
+                                  })
                                 }}
                               />
                             </label>

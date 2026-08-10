@@ -4,6 +4,7 @@ import { toast } from 'react-toastify'
 import CustomSelect from '../components/ui/CustomSelect'
 import PageHeader from '../components/ui/PageHeader'
 import { bannerApi } from '../api/bannerApi'
+import { uploadFileFromPc } from '../utils/uploadFile'
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 const Label = ({ children }) => <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">{children}</label>
@@ -182,14 +183,6 @@ export default function AjouterBanniere() {
     }
   }, [dateDebut])
 
-  // ─ Convert file to base64
-  const fileToBase64 = (file) => new Promise((resolve, reject) => {
-    const reader = new FileReader()
-    reader.onload = () => resolve(reader.result)
-    reader.onerror = reject
-    reader.readAsDataURL(file)
-  })
-
   // ─ Submit
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -290,11 +283,11 @@ export default function AjouterBanniere() {
                       <p className="text-[10px] text-slate-400 mt-1">Recommandé: 1920×600px</p>
                       <input type="file" className="hidden" accept="image/*" onChange={async (e) => {
                         const file = e.target.files?.[0]
-                        if (file) {
-                          setDesktopImageName(file.name)
-                          const b64 = await fileToBase64(file)
-                          setDesktopImage(b64)
-                        }
+                        e.target.value = ''
+                        if (!file) return
+                        setDesktopImageName(file.name)
+                        const url = await uploadFileFromPc(file, 'banners')
+                        if (url) setDesktopImage(url)
                       }} />
                     </label>
                   )}
@@ -303,10 +296,9 @@ export default function AjouterBanniere() {
                 <div>
                   <Label>Image Mobile</Label>
                   {mobileImage ? (
-                    <div className="relative bg-slate-50 rounded-lg border border-slate-200 p-4 flex items-center gap-3">
-                      <span className="material-symbols-outlined text-brand">smartphone</span>
-                      <span className="text-sm text-slate-700 truncate flex-1">{mobileImage}</span>
-                      <button type="button" onClick={() => setMobileImage('')} className="text-red-400 hover:text-red-500">
+                    <div className="relative bg-slate-50 rounded-lg border border-slate-200 overflow-hidden">
+                      <img src={mobileImage} alt="Mobile" className="w-full h-40 object-cover" />
+                      <button type="button" onClick={() => setMobileImage('')} className="absolute top-2 right-2 bg-white/80 backdrop-blur text-red-400 hover:text-red-500 p-1 rounded-full shadow">
                         <span className="material-symbols-outlined text-sm">close</span>
                       </button>
                     </div>
@@ -315,7 +307,13 @@ export default function AjouterBanniere() {
                       <span className="material-symbols-outlined text-3xl text-slate-300 mb-2 block">smartphone</span>
                       <p className="text-xs font-bold text-slate-500">Glissez ou cliquez</p>
                       <p className="text-[10px] text-slate-400 mt-1">Recommandé: 800×800px</p>
-                      <input type="file" className="hidden" accept="image/*" onChange={(e) => { if (e.target.files?.[0]) setMobileImage(e.target.files[0].name) }} />
+                      <input type="file" className="hidden" accept="image/*" onChange={async (e) => {
+                        const file = e.target.files?.[0]
+                        e.target.value = ''
+                        if (!file) return
+                        const url = await uploadFileFromPc(file, 'banners')
+                        if (url) setMobileImage(url)
+                      }} />
                     </label>
                   )}
                 </div>

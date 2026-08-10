@@ -15,10 +15,14 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import java.text.Normalizer;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -28,6 +32,7 @@ public class ProductService {
     private final ProductVariantRepository variantRepository;
     private final CategoryRepository categoryRepository;
     private final CollectionRepository collectionRepository;
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     // ── Get all products ───────────────────────────────────────────
     @Transactional(readOnly = true)
@@ -115,7 +120,7 @@ public class ProductService {
     public List<ProductResponse> getPublicProducts() {
         return productRepository.findPublicProducts()
                 .stream()
-                .map(this::mapToResponse)
+                .map(this::mapToPublicCard)
                 .toList();
     }
 
@@ -124,7 +129,7 @@ public class ProductService {
     public List<ProductResponse> getPublicProductsByCategory(Long categoryId) {
         return productRepository.findPublicProductsByCategory(categoryId)
                 .stream()
-                .map(this::mapToResponse)
+                .map(this::mapToPublicCard)
                 .toList();
     }
 
@@ -133,7 +138,7 @@ public class ProductService {
     public List<ProductResponse> getPublicProductsByParentCategory(Long parentId) {
         return productRepository.findPublicProductsByParentCategory(parentId)
                 .stream()
-                .map(this::mapToResponse)
+                .map(this::mapToPublicCard)
                 .toList();
     }
 
@@ -151,7 +156,7 @@ public class ProductService {
                     }
                     return false;
                 })
-                .map(this::mapToResponse)
+                .map(this::mapToPublicCard)
                 .toList();
     }
 
@@ -217,7 +222,7 @@ public class ProductService {
                 .colors(request.getColors())
                 .sizes(request.getSizes())
                 .performance(request.getPerformance())
-                .imageUrl(request.getImageUrl())
+                .imageUrl(resolveImageUrl(request.getImageUrl(), request.getColorImages()))
                 .colorImages(request.getColorImages())
                 .upsellTags(request.getUpsellTags())
                 .mixMatchEnabled(request.isMixMatchEnabled())
@@ -294,8 +299,8 @@ public class ProductService {
         product.setColors(request.getColors());
         product.setSizes(request.getSizes());
         product.setPerformance(request.getPerformance());
-        product.setImageUrl(request.getImageUrl());
         product.setColorImages(request.getColorImages());
+        product.setImageUrl(resolveImageUrl(request.getImageUrl(), request.getColorImages()));
         product.setUpsellTags(request.getUpsellTags());
         product.setMixMatchEnabled(request.isMixMatchEnabled());
         product.setMixMatchGender(defaultMixValue(request.getMixMatchGender()));
@@ -413,6 +418,51 @@ public class ProductService {
                     .build());
         }
         return result;
+    }
+
+    /** Liste publique : image principale seulement, sans colorImages lourds. */
+    private ProductResponse mapToPublicCard(Product p) {
+        ProductResponse r = mapToResponse(p);
+        String thumb = resolveImageUrl(p.getImageUrl(), p.getColorImages());
+        if (thumb != null) {
+            r.setImageUrl(thumb);
+        }
+        r.setColorImages(null);
+        r.setDescription(null);
+        return r;
+    }
+
+    private String resolveImageUrl(String imageUrl, String colorImagesJson) {
+        if (imageUrl != null && !imageUrl.isBlank()) {
+            return imageUrl.trim();
+        }
+        return firstColorImage(colorImagesJson);
+    }
+
+    private String firstColorImage(String colorImagesJson) {
+        if (colorImagesJson == null || colorImagesJson.isBlank()) {
+            return null;
+        }
+        try {
+            Map<String, List<String>> map = objectMapper.readValue(
+                    colorImagesJson, new TypeReference<Map<String, List<String>>>() {});
+            if (map == null) return null;
+            String firstData = null;
+            for (List<String> arr : map.values()) {
+                if (arr == null) continue;
+                for (String u : arr) {
+                    if (u == null || u.isBlank()) continue;
+                    String v = u.trim();
+                    if (v.startsWith("http://") || v.startsWith("https://") || v.startsWith("/uploads/")) {
+                        return v;
+                    }
+                    if (firstData == null) firstData = v;
+                }
+            }
+            return firstData;
+        } catch (Exception e) {
+            return null;
+        }
     }
 
     public ProductResponse mapToResponse(Product p) {

@@ -7,6 +7,7 @@ import PageHeader from '../components/ui/PageHeader'
 import { collectionApi } from '../api/collectionApi'
 import { categoryApi } from '../api/categoryApi'
 import { productApi } from '../api/productApi'
+import { uploadFileFromPc } from '../utils/uploadFile'
 
 // ── Reusable helpers ──────────────────────────────────────────────────────────
 
@@ -164,21 +165,19 @@ export default function GererCollection() {
     ? existingCollections.filter(c => c.menuParentCategory === menuParentCategory && String(c.id) !== String(id))
     : existingCollections.filter(c => String(c.id) !== String(id))
 
-  // ── Image handlers ───────────────────────────────────────────────────
-  const processFile = useCallback((file) => {
+  // ── Image handlers — upload serveur, URL courte (pas de base64) ──
+  const processFile = useCallback(async (file) => {
     if (!file) return
     if (file.size > 2 * 1024 * 1024) { toast.error('Image trop lourde (max 2 Mo)'); return }
-    const reader = new FileReader()
-    reader.onload = (e) => setImageUrl(e.target.result)
-    reader.readAsDataURL(file)
+    const url = await uploadFileFromPc(file, 'collections')
+    if (url) setImageUrl(url)
   }, [])
 
-  const processBentoFile = useCallback((file) => {
+  const processBentoFile = useCallback(async (file) => {
     if (!file) return
     if (file.size > 2 * 1024 * 1024) { toast.error('Image trop lourde (max 2 Mo)'); return }
-    const reader = new FileReader()
-    reader.onload = (e) => setBentoImageUrl(e.target.result)
-    reader.readAsDataURL(file)
+    const url = await uploadFileFromPc(file, 'collections')
+    if (url) setBentoImageUrl(url)
   }, [])
 
   const clearImage = () => setImageUrl('')

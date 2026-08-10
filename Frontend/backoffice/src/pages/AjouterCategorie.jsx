@@ -4,6 +4,7 @@ import { toast } from 'react-toastify'
 import CustomSelect from '../components/ui/CustomSelect'
 import PageHeader from '../components/ui/PageHeader'
 import { categoryApi } from '../api/categoryApi'
+import { uploadFileFromPc } from '../utils/uploadFile'
 
 // ── Reusable helpers ──────────────────────────────────────────────────────────
 function Toggle({ checked, onChange }) {
@@ -123,8 +124,8 @@ export default function AjouterCategorie() {
     setMenuPosition(siblingCount + 1)
   }
 
-  // Image handling
-  const processFile = useCallback((file) => {
+  // Image handling — upload serveur, URL courte (pas de base64)
+  const processFile = useCallback(async (file) => {
     if (!file) return
     if (file.size > 2 * 1024 * 1024) {
       toast.error('L\'image ne doit pas dépasser 2 Mo.')
@@ -135,9 +136,9 @@ export default function AjouterCategorie() {
       return
     }
     setImageName(file.name)
-    const reader = new FileReader()
-    reader.onload = (ev) => setImagePreview(ev.target.result)
-    reader.readAsDataURL(file)
+    const url = await uploadFileFromPc(file, 'categories')
+    if (!url) return
+    setImagePreview(url)
     setShowCrop(false)
     setCropOffset({ x: 0, y: 0 })
     setCropZoom(1)

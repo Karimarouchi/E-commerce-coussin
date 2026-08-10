@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { toast } from 'react-toastify'
 import { appearanceApi } from '../api/appearanceApi'
 import { applyAllColors, applyColor, applyAllFonts, applyFont, applySidebarLayout, applyBorderRadius, applyDarkMode, applyLogos, applyLogoScale, applyLogoAlign } from '../utils/brandColor'
+import { uploadFileFromPc } from '../utils/uploadFile'
 import CustomSelect from '../components/ui/CustomSelect'
 
 /* ── Tiny helpers ─────────────────────────────────────────── */
@@ -97,20 +98,17 @@ function ColorPicker({ label, sub, value, onChange }) {
 
 function LogoUpload({ icon, label, sub, value, onChange, recommended = '200 × 40 px', previewSquare = false }) {
   const [dragging, setDragging] = useState(false)
+  const [uploading, setUploading] = useState(false)
 
-  const processFile = (file) => {
+  const processFile = async (file) => {
     if (!file) return
-    if (!file.type.startsWith('image/')) {
-      toast.error('Seuls les fichiers image sont acceptés')
-      return
+    setUploading(true)
+    try {
+      const url = await uploadFileFromPc(file, 'appearance')
+      if (url) onChange(url)
+    } finally {
+      setUploading(false)
     }
-    if (file.size > 2 * 1024 * 1024) {
-      toast.error('Fichier trop volumineux (max 2MB)')
-      return
-    }
-    const reader = new FileReader()
-    reader.onload = () => onChange(reader.result)
-    reader.readAsDataURL(file)
   }
 
   const handleFile = (e) => processFile(e.target.files?.[0])
@@ -179,9 +177,9 @@ function LogoUpload({ icon, label, sub, value, onChange, recommended = '200 × 4
           <p className="text-[9px] text-slate-400 mt-1">{sub}</p>
           <p className="text-[9px] text-slate-400 mt-0.5">Recommandé : <strong>{recommended}</strong></p>
           <p className="text-[9px] text-brand font-semibold mt-2">
-            {dragging ? 'Déposez ici !' : 'Glissez-déposez ou cliquez'}
+            {uploading ? 'Upload…' : dragging ? 'Déposez ici !' : 'Glissez-déposez ou cliquez'}
           </p>
-          <input type="file" accept="image/png,image/jpeg,image/webp,image/x-icon,image/vnd.microsoft.icon,.ico" onChange={handleFile} className="hidden" />
+          <input type="file" accept="image/png,image/jpeg,image/webp,image/x-icon,image/vnd.microsoft.icon,.ico" onChange={handleFile} className="hidden" disabled={uploading} />
         </label>
       )}
     </div>
