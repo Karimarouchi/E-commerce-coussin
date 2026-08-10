@@ -4,6 +4,7 @@ import { appearanceApi } from '../api/appearanceApi'
 import { applyAllColors, applyColor, applyAllFonts, applyFont, applySidebarLayout, applyBorderRadius, applyDarkMode, applyLogos, applyLogoScale, applyLogoAlign } from '../utils/brandColor'
 import { uploadFileFromPc } from '../utils/uploadFile'
 import CustomSelect from '../components/ui/CustomSelect'
+import UploadProgressBar from '../components/ui/UploadProgressBar'
 
 /* ── Tiny helpers ─────────────────────────────────────────── */
 function Toggle({ checked, onChange }) {
@@ -99,19 +100,26 @@ function ColorPicker({ label, sub, value, onChange }) {
 function LogoUpload({ icon, label, sub, value, onChange, recommended = '200 × 40 px', previewSquare = false }) {
   const [dragging, setDragging] = useState(false)
   const [uploading, setUploading] = useState(false)
+  const [progress, setProgress] = useState(0)
 
   const processFile = async (file) => {
-    if (!file) return
+    if (!file || uploading) return
     setUploading(true)
+    setProgress(0)
     try {
-      const url = await uploadFileFromPc(file, 'appearance')
+      const url = await uploadFileFromPc(file, 'appearance', { onProgress: setProgress })
       if (url) onChange(url)
     } finally {
       setUploading(false)
+      setProgress(0)
     }
   }
 
-  const handleFile = (e) => processFile(e.target.files?.[0])
+  const handleFile = (e) => {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    processFile(file)
+  }
 
   const handleDrop = (e) => {
     e.preventDefault()
@@ -128,12 +136,18 @@ function LogoUpload({ icon, label, sub, value, onChange, recommended = '200 × 4
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       className={`border-2 border-dashed rounded-xl p-6 flex flex-col items-center justify-center text-center transition-all relative overflow-hidden group ${
-        dragging
-          ? 'border-brand bg-brand/5 scale-[1.02]'
-          : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50'
+        uploading
+          ? 'border-brand/50 bg-brand/5'
+          : dragging
+            ? 'border-brand bg-brand/5 scale-[1.02]'
+            : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50'
       }`}
     >
-      {value ? (
+      {uploading ? (
+        <div className="w-full max-w-[220px] py-2">
+          <UploadProgressBar progress={progress} />
+        </div>
+      ) : value ? (
         <>
           <div className="w-full flex items-center justify-center bg-slate-50 rounded-lg p-3 mb-3" style={{ minHeight: '60px' }}>
             <img
@@ -177,9 +191,9 @@ function LogoUpload({ icon, label, sub, value, onChange, recommended = '200 × 4
           <p className="text-[9px] text-slate-400 mt-1">{sub}</p>
           <p className="text-[9px] text-slate-400 mt-0.5">Recommandé : <strong>{recommended}</strong></p>
           <p className="text-[9px] text-brand font-semibold mt-2">
-            {uploading ? 'Upload…' : dragging ? 'Déposez ici !' : 'Glissez-déposez ou cliquez'}
+            {dragging ? 'Déposez ici !' : 'Glissez-déposez ou cliquez'}
           </p>
-          <input type="file" accept="image/png,image/jpeg,image/webp,image/x-icon,image/vnd.microsoft.icon,.ico" onChange={handleFile} className="hidden" disabled={uploading} />
+          <input type="file" accept="image/png,image/jpeg,image/webp,image/x-icon,image/vnd.microsoft.icon,.ico" onChange={handleFile} className="hidden" />
         </label>
       )}
     </div>

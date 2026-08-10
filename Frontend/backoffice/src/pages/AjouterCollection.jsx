@@ -7,6 +7,7 @@ import { collectionApi } from '../api/collectionApi'
 import { categoryApi } from '../api/categoryApi'
 import { productApi } from '../api/productApi'
 import { uploadFileFromPc } from '../utils/uploadFile'
+import UploadProgressBar from '../components/ui/UploadProgressBar'
 
 // ── Reusable helpers ──────────────────────────────────────────────────────────
 
@@ -100,6 +101,10 @@ export default function AjouterCollection() {
   const [bentoImageName, setBentoImageName] = useState('')
   const [isBentoDragging, setIsBentoDragging] = useState(false)
   const [isHoveringBentoPreview, setIsHoveringBentoPreview] = useState(false)
+  const [uploadingMenu, setUploadingMenu] = useState(false)
+  const [uploadProgressMenu, setUploadProgressMenu] = useState(0)
+  const [uploadingBento, setUploadingBento] = useState(false)
+  const [uploadProgressBento, setUploadProgressBento] = useState(0)
 
   // SEO
   const [metaTitle, setMetaTitle] = useState('')
@@ -165,21 +170,35 @@ export default function AjouterCollection() {
 
   // ── Image handlers — upload serveur, URL courte (pas de base64) ──
   const processFile = useCallback(async (file) => {
-    if (!file) return
-    if (file.size > 2 * 1024 * 1024) { toast.error('Image trop lourde (max 2 Mo)'); return }
+    if (!file || uploadingMenu) return
+    if (file.size > 15 * 1024 * 1024) { toast.error('Image trop lourde (max 15 Mo)'); return }
     setImageFile(file)
     setImageName(file.name)
-    const url = await uploadFileFromPc(file, 'collections')
-    if (url) setImagePreview(url)
-  }, [])
+    setUploadingMenu(true)
+    setUploadProgressMenu(0)
+    try {
+      const url = await uploadFileFromPc(file, 'collections', { onProgress: setUploadProgressMenu })
+      if (url) setImagePreview(url)
+    } finally {
+      setUploadingMenu(false)
+      setUploadProgressMenu(0)
+    }
+  }, [uploadingMenu])
 
   const processBentoFile = useCallback(async (file) => {
-    if (!file) return
-    if (file.size > 2 * 1024 * 1024) { toast.error('Image trop lourde (max 2 Mo)'); return }
+    if (!file || uploadingBento) return
+    if (file.size > 15 * 1024 * 1024) { toast.error('Image trop lourde (max 15 Mo)'); return }
     setBentoImageName(file.name)
-    const url = await uploadFileFromPc(file, 'collections')
-    if (url) setBentoImagePreview(url)
-  }, [])
+    setUploadingBento(true)
+    setUploadProgressBento(0)
+    try {
+      const url = await uploadFileFromPc(file, 'collections', { onProgress: setUploadProgressBento })
+      if (url) setBentoImagePreview(url)
+    } finally {
+      setUploadingBento(false)
+      setUploadProgressBento(0)
+    }
+  }, [uploadingBento])
 
   const clearImage = () => { setImageFile(null); setImagePreview(null); setImageName('') }
   const clearBentoImage = () => { setBentoImagePreview(null); setBentoImageName('') }
@@ -408,14 +427,24 @@ export default function AjouterCollection() {
                     </div>
                   </div>
                 ) : (
-                  <label className={`block border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition-all ${isDragging ? 'border-brand bg-brand/10 scale-[1.02] shadow-lg' : 'border-slate-200 hover:border-brand/40 hover:bg-brand/5'}`}
+                  <label className={`block border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition-all ${
+                    uploadingMenu
+                      ? 'border-brand/50 bg-brand/5 pointer-events-none'
+                      : isDragging
+                        ? 'border-brand bg-brand/10 scale-[1.02] shadow-lg'
+                        : 'border-slate-200 hover:border-brand/40 hover:bg-brand/5'
+                  }`}
                     onDrop={handleDrop} onDragOver={handleDragOver} onDragLeave={handleDragLeave}>
-                    <div className={`transition-transform ${isDragging ? 'scale-110' : ''}`}>
-                      <span className={`material-symbols-outlined text-4xl mb-2 block transition-colors ${isDragging ? 'text-brand' : 'text-slate-300'}`}>{isDragging ? 'file_download' : 'cloud_upload'}</span>
-                      <p className="text-xs font-bold text-slate-500">{isDragging ? 'Lâchez pour importer' : 'Cliquer ou glisser'}</p>
-                      <p className="text-[10px] text-slate-400 mt-1">PNG, JPG, WebP — max 2 Mo</p>
-                    </div>
-                    <input ref={fileInputRef} type="file" className="hidden" accept="image/*" onChange={(e) => processFile(e.target.files?.[0])} />
+                    {uploadingMenu ? (
+                      <div className="py-4 max-w-xs mx-auto"><UploadProgressBar progress={uploadProgressMenu} /></div>
+                    ) : (
+                      <div className={`transition-transform ${isDragging ? 'scale-110' : ''}`}>
+                        <span className={`material-symbols-outlined text-4xl mb-2 block transition-colors ${isDragging ? 'text-brand' : 'text-slate-300'}`}>{isDragging ? 'file_download' : 'cloud_upload'}</span>
+                        <p className="text-xs font-bold text-slate-500">{isDragging ? 'Lâchez pour importer' : 'Cliquer ou glisser'}</p>
+                        <p className="text-[10px] text-slate-400 mt-1">PNG, JPG, WebP — max 15 Mo</p>
+                      </div>
+                    )}
+                    <input ref={fileInputRef} type="file" className="hidden" accept="image/*" disabled={uploadingMenu} onChange={(e) => processFile(e.target.files?.[0])} />
                   </label>
                 )}
                 {imagePreview && <input ref={fileInputRef} type="file" className="hidden" accept="image/*" onChange={(e) => processFile(e.target.files?.[0])} />}
@@ -456,14 +485,24 @@ export default function AjouterCollection() {
                         </div>
                       </div>
                     ) : (
-                      <label className={`block border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition-all ${isBentoDragging ? 'border-brand bg-brand/10 scale-[1.02] shadow-lg' : 'border-slate-200 hover:border-brand/40 hover:bg-brand/5'}`}
+                      <label className={`block border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition-all ${
+                        uploadingBento
+                          ? 'border-brand/50 bg-brand/5 pointer-events-none'
+                          : isBentoDragging
+                            ? 'border-brand bg-brand/10 scale-[1.02] shadow-lg'
+                            : 'border-slate-200 hover:border-brand/40 hover:bg-brand/5'
+                      }`}
                         onDrop={handleBentoDrop} onDragOver={handleBentoDragOver} onDragLeave={handleBentoDragLeave}>
-                        <div className={`transition-transform ${isBentoDragging ? 'scale-110' : ''}`}>
-                          <span className={`material-symbols-outlined text-4xl mb-2 block transition-colors ${isBentoDragging ? 'text-brand' : 'text-slate-300'}`}>{isBentoDragging ? 'file_download' : 'cloud_upload'}</span>
-                          <p className="text-xs font-bold text-slate-500">{isBentoDragging ? 'Lâchez pour importer' : 'Cliquer ou glisser'}</p>
-                          <p className="text-[10px] text-slate-400 mt-1">PNG, JPG, WebP — max 2 Mo</p>
-                        </div>
-                        <input ref={bentoFileInputRef} type="file" className="hidden" accept="image/*" onChange={(e) => processBentoFile(e.target.files?.[0])} />
+                        {uploadingBento ? (
+                          <div className="py-4 max-w-xs mx-auto"><UploadProgressBar progress={uploadProgressBento} /></div>
+                        ) : (
+                          <div className={`transition-transform ${isBentoDragging ? 'scale-110' : ''}`}>
+                            <span className={`material-symbols-outlined text-4xl mb-2 block transition-colors ${isBentoDragging ? 'text-brand' : 'text-slate-300'}`}>{isBentoDragging ? 'file_download' : 'cloud_upload'}</span>
+                            <p className="text-xs font-bold text-slate-500">{isBentoDragging ? 'Lâchez pour importer' : 'Cliquer ou glisser'}</p>
+                            <p className="text-[10px] text-slate-400 mt-1">PNG, JPG, WebP — max 15 Mo</p>
+                          </div>
+                        )}
+                        <input ref={bentoFileInputRef} type="file" className="hidden" accept="image/*" disabled={uploadingBento} onChange={(e) => processBentoFile(e.target.files?.[0])} />
                       </label>
                     )}
                     {bentoImagePreview && <input ref={bentoFileInputRef} type="file" className="hidden" accept="image/*" onChange={(e) => processBentoFile(e.target.files?.[0])} />}

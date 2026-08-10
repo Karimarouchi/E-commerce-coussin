@@ -5,6 +5,7 @@ import CustomSelect from '../components/ui/CustomSelect'
 import PageHeader from '../components/ui/PageHeader'
 import { categoryApi } from '../api/categoryApi'
 import { uploadFileFromPc } from '../utils/uploadFile'
+import UploadProgressBar from '../components/ui/UploadProgressBar'
 
 // ── Reusable helpers ──────────────────────────────────────────────────────────
 function Toggle({ checked, onChange }) {
@@ -68,6 +69,8 @@ export default function AjouterCategorie() {
   const [showCrop, setShowCrop] = useState(false)
   const [cropOffset, setCropOffset] = useState({ x: 0, y: 0 })
   const [cropZoom, setCropZoom] = useState(1)
+  const [uploadingImage, setUploadingImage] = useState(false)
+  const [uploadProgress, setUploadProgress] = useState(0)
   const fileInputRef = useRef(null)
 
   // Derived: type is automatic based on parent
@@ -126,9 +129,9 @@ export default function AjouterCategorie() {
 
   // Image handling — upload serveur, URL courte (pas de base64)
   const processFile = useCallback(async (file) => {
-    if (!file) return
-    if (file.size > 2 * 1024 * 1024) {
-      toast.error('L\'image ne doit pas dépasser 2 Mo.')
+    if (!file || uploadingImage) return
+    if (file.size > 15 * 1024 * 1024) {
+      toast.error('L\'image ne doit pas dépasser 15 Mo.')
       return
     }
     if (!file.type.startsWith('image/')) {
@@ -136,13 +139,22 @@ export default function AjouterCategorie() {
       return
     }
     setImageName(file.name)
-    const url = await uploadFileFromPc(file, 'categories')
-    if (!url) return
-    setImagePreview(url)
-    setShowCrop(false)
-    setCropOffset({ x: 0, y: 0 })
-    setCropZoom(1)
-  }, [])
+    setUploadingImage(true)
+    setUploadProgress(0)
+    try {
+      const url = await uploadFileFromPc(file, 'categories', {
+        onProgress: setUploadProgress,
+      })
+      if (!url) return
+      setImagePreview(url)
+      setShowCrop(false)
+      setCropOffset({ x: 0, y: 0 })
+      setCropZoom(1)
+    } finally {
+      setUploadingImage(false)
+      setUploadProgress(0)
+    }
+  }, [uploadingImage])
 
   const clearImage = () => {
     setImageName('')
@@ -391,29 +403,38 @@ export default function AjouterCategorie() {
               ) : (
                 <label
                   className={`block border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition-all ${
-                    isDragging
-                      ? 'border-brand bg-brand/10 scale-[1.02] shadow-lg'
-                      : 'border-slate-200 hover:border-brand/40 hover:bg-brand/5'
+                    uploadingImage
+                      ? 'border-brand/50 bg-brand/5 pointer-events-none'
+                      : isDragging
+                        ? 'border-brand bg-brand/10 scale-[1.02] shadow-lg'
+                        : 'border-slate-200 hover:border-brand/40 hover:bg-brand/5'
                   }`}
                   onDrop={handleDrop}
                   onDragOver={handleDragOver}
                   onDragLeave={handleDragLeave}
                 >
-                  <div className={`transition-transform ${isDragging ? 'scale-110' : ''}`}>
-                    <span className={`material-symbols-outlined text-4xl mb-2 block transition-colors ${isDragging ? 'text-brand' : 'text-slate-300'}`}>
-                      {isDragging ? 'file_download' : 'cloud_upload'}
-                    </span>
-                    <p className="text-xs font-bold text-slate-500">
-                      {isDragging ? 'Lâchez pour importer' : 'Cliquer ou glisser une image'}
-                    </p>
-                    <p className="text-[10px] text-slate-400 mt-1">PNG, JPG, WebP — max 2 Mo</p>
-                    <p className="text-[10px] text-brand/60 mt-1 font-medium">Ratio recommandé : 1:1 (carré)</p>
-                  </div>
+                  {uploadingImage ? (
+                    <div className="py-4 max-w-xs mx-auto">
+                      <UploadProgressBar progress={uploadProgress} />
+                    </div>
+                  ) : (
+                    <div className={`transition-transform ${isDragging ? 'scale-110' : ''}`}>
+                      <span className={`material-symbols-outlined text-4xl mb-2 block transition-colors ${isDragging ? 'text-brand' : 'text-slate-300'}`}>
+                        {isDragging ? 'file_download' : 'cloud_upload'}
+                      </span>
+                      <p className="text-xs font-bold text-slate-500">
+                        {isDragging ? 'Lâchez pour importer' : 'Cliquer ou glisser une image'}
+                      </p>
+                      <p className="text-[10px] text-slate-400 mt-1">PNG, JPG, WebP — max 15 Mo</p>
+                      <p className="text-[10px] text-brand/60 mt-1 font-medium">Ratio recommandé : 1:1 (carré)</p>
+                    </div>
+                  )}
                   <input
                     ref={fileInputRef}
                     type="file"
                     className="hidden"
                     accept="image/*"
+                    disabled={uploadingImage}
                     onChange={(e) => processFile(e.target.files?.[0])}
                   />
                 </label>

@@ -13,7 +13,7 @@ import {
   getMixMatchRoleLabel,
   getMixMatchSuggestions,
 } from '../utils/mixMatch'
-import { uploadFileFromPc } from '../utils/uploadFile'
+import ImageUploadZone from '../components/ui/ImageUploadZone'
 
 // ── Palette de couleurs françaises (79 couleurs) ─────────────────────────────
 const COLOR_MAP = {
@@ -761,60 +761,35 @@ function AjouterProduit() {
                       const tabKey = activeColorTab || 'Général'
                       const img = (colorImages[tabKey] || [])[idx]
                       return (
-                        <div key={idx} className="relative group">
-                          {img ? (
-                            <div className="aspect-square rounded-lg border border-slate-200 overflow-hidden relative">
-                              <img src={img} alt="" className="w-full h-full object-cover" />
-                              <button
-                                type="button"
-                                onClick={() => setColorImages(prev => {
-                                  const arr = [...(prev[tabKey] || [null, null, null])]
-                                  arr[idx] = null
-                                  return { ...prev, [tabKey]: arr }
-                                })}
-                                className="absolute top-1 right-1 w-6 h-6 bg-white shadow-sm rounded-full flex items-center justify-center text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
-                              >
-                                <span className="material-symbols-outlined text-sm">close</span>
-                              </button>
+                        <ImageUploadZone
+                          key={idx}
+                          value={img || null}
+                          folder="products"
+                          variant="square"
+                          icon={idx === 0 ? 'add_photo_alternate' : 'add'}
+                          hint={idx === 0 ? 'Principale — glisser ou cliquer' : 'Glisser ou cliquer'}
+                          badge={
+                            <>
                               {idx === 0 && (
-                                <span className="absolute bottom-1 left-1 bg-brand text-white text-[9px] font-bold px-1.5 py-0.5 rounded">
+                                <span className="absolute bottom-1 left-1 bg-brand text-white text-[9px] font-bold px-1.5 py-0.5 rounded z-10">
                                   Principale
                                 </span>
                               )}
                               {idx === mixMatchImageIndex && (
-                                <span className="absolute bottom-1 right-1 bg-slate-900 text-white text-[9px] font-bold px-1.5 py-0.5 rounded">
+                                <span className="absolute bottom-1 right-1 bg-slate-900 text-white text-[9px] font-bold px-1.5 py-0.5 rounded z-10">
                                   Mix & Match
                                 </span>
                               )}
-                            </div>
-                          ) : (
-                            <label className="cursor-pointer block">
-                              <div className="aspect-square rounded-lg border-2 border-dashed border-slate-200 flex flex-col items-center justify-center text-slate-300 hover:border-brand hover:text-brand transition-all">
-                                <span className="material-symbols-outlined text-2xl mb-1">
-                                  {idx === 0 ? 'add_photo_alternate' : 'add'}
-                                </span>
-                                {idx === 0 && <p className="text-[9px] font-bold">Principale</p>}
-                              </div>
-                              <input
-                                type="file"
-                                accept="image/*"
-                                className="hidden"
-                                onChange={async (e) => {
-                                  const file = e.target.files[0]
-                                  e.target.value = ''
-                                  if (!file) return
-                                  const url = await uploadFileFromPc(file, 'products')
-                                  if (!url) return
-                                  setColorImages((prev) => {
-                                    const arr = [...(prev[tabKey] || [null, null, null])]
-                                    arr[idx] = url
-                                    return { ...prev, [tabKey]: arr }
-                                  })
-                                }}
-                              />
-                            </label>
-                          )}
-                        </div>
+                            </>
+                          }
+                          onChange={(url) => {
+                            setColorImages((prev) => {
+                              const arr = [...(prev[tabKey] || [null, null, null])]
+                              arr[idx] = url || null
+                              return { ...prev, [tabKey]: arr }
+                            })
+                          }}
+                        />
                       )
                     })}
                   </div>

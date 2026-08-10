@@ -63,7 +63,12 @@ apiClient.interceptors.request.use((config) => {
   }
   // Let the browser set multipart boundary for file uploads
   if (typeof FormData !== 'undefined' && config.data instanceof FormData) {
-    delete config.headers['Content-Type']
+    if (typeof config.headers?.set === 'function') {
+      config.headers.set('Content-Type', false)
+    } else {
+      delete config.headers['Content-Type']
+      delete config.headers['content-type']
+    }
   }
   return config
 })

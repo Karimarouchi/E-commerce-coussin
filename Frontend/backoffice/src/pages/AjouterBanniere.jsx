@@ -4,7 +4,7 @@ import { toast } from 'react-toastify'
 import CustomSelect from '../components/ui/CustomSelect'
 import PageHeader from '../components/ui/PageHeader'
 import { bannerApi } from '../api/bannerApi'
-import { uploadFileFromPc } from '../utils/uploadFile'
+import ImageUploadZone from '../components/ui/ImageUploadZone'
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 const Label = ({ children }) => <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">{children}</label>
@@ -259,63 +259,29 @@ export default function AjouterBanniere() {
             </div>
             <div className="p-6 space-y-5">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                {/* Desktop upload */}
                 <div>
                   <Label>Image Desktop</Label>
-                  {desktopImage ? (
-                    <div className="relative bg-slate-50 rounded-lg border border-slate-200 overflow-hidden">
-                      {desktopImage.startsWith('data:') || desktopImage.startsWith('http') ? (
-                        <img src={desktopImage} alt="preview" className="w-full h-28 object-cover" />
-                      ) : (
-                        <div className="p-4 flex items-center gap-3">
-                          <span className="material-symbols-outlined text-brand">image</span>
-                          <span className="text-sm text-slate-700 truncate flex-1">{desktopImageName || desktopImage}</span>
-                        </div>
-                      )}
-                      <button type="button" onClick={() => { setDesktopImage(''); setDesktopImageName('') }} className="absolute top-2 right-2 bg-white/80 backdrop-blur text-red-400 hover:text-red-500 p-1 rounded-full shadow">
-                        <span className="material-symbols-outlined text-sm">close</span>
-                      </button>
-                    </div>
-                  ) : (
-                    <label className="block border-2 border-dashed border-slate-200 rounded-lg p-8 text-center cursor-pointer hover:border-brand/40 hover:bg-brand/5 transition-colors">
-                      <span className="material-symbols-outlined text-3xl text-slate-300 mb-2 block">cloud_upload</span>
-                      <p className="text-xs font-bold text-slate-500">Glissez ou cliquez</p>
-                      <p className="text-[10px] text-slate-400 mt-1">Recommandé: 1920×600px</p>
-                      <input type="file" className="hidden" accept="image/*" onChange={async (e) => {
-                        const file = e.target.files?.[0]
-                        e.target.value = ''
-                        if (!file) return
-                        setDesktopImageName(file.name)
-                        const url = await uploadFileFromPc(file, 'banners')
-                        if (url) setDesktopImage(url)
-                      }} />
-                    </label>
-                  )}
+                  <ImageUploadZone
+                    value={desktopImage || null}
+                    folder="banners"
+                    variant="banner"
+                    hint="Recommandé: 1920×600px — glisser-déposer ou cliquer"
+                    onChange={(url) => {
+                      setDesktopImage(url || '')
+                      setDesktopImageName(url ? 'image-desktop' : '')
+                    }}
+                  />
                 </div>
-                {/* Mobile upload */}
                 <div>
                   <Label>Image Mobile</Label>
-                  {mobileImage ? (
-                    <div className="relative bg-slate-50 rounded-lg border border-slate-200 overflow-hidden">
-                      <img src={mobileImage} alt="Mobile" className="w-full h-40 object-cover" />
-                      <button type="button" onClick={() => setMobileImage('')} className="absolute top-2 right-2 bg-white/80 backdrop-blur text-red-400 hover:text-red-500 p-1 rounded-full shadow">
-                        <span className="material-symbols-outlined text-sm">close</span>
-                      </button>
-                    </div>
-                  ) : (
-                    <label className="block border-2 border-dashed border-slate-200 rounded-lg p-8 text-center cursor-pointer hover:border-brand/40 hover:bg-brand/5 transition-colors">
-                      <span className="material-symbols-outlined text-3xl text-slate-300 mb-2 block">smartphone</span>
-                      <p className="text-xs font-bold text-slate-500">Glissez ou cliquez</p>
-                      <p className="text-[10px] text-slate-400 mt-1">Recommandé: 800×800px</p>
-                      <input type="file" className="hidden" accept="image/*" onChange={async (e) => {
-                        const file = e.target.files?.[0]
-                        e.target.value = ''
-                        if (!file) return
-                        const url = await uploadFileFromPc(file, 'banners')
-                        if (url) setMobileImage(url)
-                      }} />
-                    </label>
-                  )}
+                  <ImageUploadZone
+                    value={mobileImage || null}
+                    folder="banners"
+                    variant="square"
+                    icon="smartphone"
+                    hint="Recommandé: 800×800px — glisser-déposer ou cliquer"
+                    onChange={(url) => setMobileImage(url || '')}
+                  />
                 </div>
               </div>
               {/* Video optionnel */}
