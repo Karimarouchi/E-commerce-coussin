@@ -22,6 +22,15 @@
         <jjwt.version>0.12.5</jjwt.version>
     </properties>
 
+    <dependencyManagement>
+        <dependencies>
+        <dependency>
+            <groupId>org.springframework.security</groupId>
+            <artifactId>spring-security-web</artifactId>
+            <version>6.3.4</version>
+        </dependency>
+        </dependencies>
+    </dependencyManagement>
     <dependencies>
         <!-- Spring Boot Starters -->
         <dependency>
